@@ -9,21 +9,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cairocoders-ednalan'
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
-CORS(app)
+CORS(app, ressources={r'/*': {'origin': '*'}})
 
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = '' 
 app.config['MYSQL_DB'] = 'periscodb'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 mysql = MySQL(app)
 
-# Username : tutorial101
-# password : cairocoders
 @app.route('/')
 def home():
-    passhash = generate_password_hash('cairocoders')
-    # print(passhash)
     if 'username' in session:
         username = session['username']
         return jsonify({'message': 'You are already logged in', 'username': username})
