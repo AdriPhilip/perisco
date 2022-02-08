@@ -168,7 +168,7 @@ def registers():
 
 
 # http://localhost:5000/child - this will be the registration page
-@app.route('/child', methods=['POST'])
+@app.route('/add_child', methods=['POST'])
 def createChild():
     # connect
     conn = mysql.connect()
@@ -227,6 +227,22 @@ def findChildByUserId(user_id):
         cursor.execute(sql, user_id)
         children = cursor.fetchall()
         return jsonify(children)
+    else:
+        msg = 'no child registred'
+        return jsonify(msg)
+
+# http://localhost:5000/child - this will be the registration page
+@app.route('/del_child/<child_id>', methods=['DELETE'])
+def deleteChildById(child_id):
+    # connect
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    if child_id:
+        # Check if account exists using MySQL
+        sql = f"DELETE FROM children WHERE child_id = %s"
+        cursor.execute(sql, child_id)
+        conn.commit()
+        return jsonify("informations deleted")
     else:
         msg = 'no child registred'
         return jsonify(msg)
