@@ -15,7 +15,7 @@ mysql = MySQL()
 
 # MySQL configurations
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = ''
+app.config['MYSQL_DATABASE_PASSWORD'] = 'The11legende'
 app.config['MYSQL_DATABASE_DB'] = 'perisco'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 app.config['MYSQL_DATABASE_PORT'] = 3306
@@ -214,7 +214,7 @@ def createChild():
 
 
 # http://localhost:5000/child - this will be the registration page
-@app.route('/child/<user_id>', methods=['GET'])
+@app.route('/children/<user_id>', methods=['GET'])
 def findChildByUserId(user_id):
     # connect
     conn = mysql.connect()
@@ -227,6 +227,23 @@ def findChildByUserId(user_id):
         cursor.execute(sql, user_id)
         children = cursor.fetchall()
         return jsonify(children)
+    else:
+        msg = 'no child registred'
+        return jsonify(msg)
+
+# http://localhost:5000/child - this will be the registration page
+@app.route('/child/<child_id>', methods=['GET'])
+def findChildById(child_id):
+    # connect
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    if child_id:
+        # Check if account exists using MySQL
+        sql = f"SELECT * FROM children " \
+              f"WHERE child_id = %s"
+        cursor.execute(sql, child_id)
+        child = cursor.fetchone()
+        return jsonify(child)
     else:
         msg = 'no child registred'
         return jsonify(msg)
