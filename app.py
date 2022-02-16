@@ -1,6 +1,7 @@
 from flask import Flask, request, session, redirect, url_for, jsonify
 from flaskext.mysql import MySQL  # pip install flask-mysql
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
 import pymysql
 import re
 
@@ -33,27 +34,39 @@ def login():
     # Check if "email" and "password" POST requests exist (user submitted form)
     if request.method == 'POST' and 'email' in data and 'password' in data:
         # Create variables for easy access
-        email = data['email']
-        password = data['password']
-        # Check if account exists using MySQL
-        cursor.execute('SELECT * FROM accounts WHERE email = %s AND password = %s', (email, password))
-        # Fetch one record and return result
-        account = cursor.fetchone()
+        _email = data['email']
+        _password = data['password']
 
-        # If account exists in accounts table in out database
-        if account:
-            # Create session data, we can access this data in other routes
-            session['loggedin'] = True
-            session['id'] = account['account_id']
-            session['firstname'] = account['firstname']
-            session['lastname'] = account['lastname']
-            session['email'] = account['email']
-            # Redirect to home page
-            # return 'Logged in successfully!'
-            response = jsonify(session)
-            response.headers.add('Access-Control-Allow-Origin', '*')
+        if _email and _password:
+            # Check if account exists using MySQL
+            cursor.execute('SELECT * FROM accounts WHERE email = %s', _email)
+            # Fetch one record and return result
+            account = cursor.fetchone()
+            password = account['password']
 
-            return response
+            # If account exists in accounts table in out database
+            if account:
+                if check_password_hash(password, _password):
+                    # Create session data, we can access this data in other routes
+                    session['loggedin'] = True
+                    session['id'] = account['account_id']
+                    session['firstname'] = account['firstname']
+                    session['lastname'] = account['lastname']
+                    session['email'] = account['email']
+                    cursor.close()
+
+                    response = {
+                        'loggedin': True,
+                        'id': account['account_id'],
+                        'firstname': account['firstname'],
+                        'lastname': account['lastname'],
+                        'email': account['email']
+                    }
+                    # response.headers.add('Access-Control-Allow-Origin', '*')
+                    return response
+                else:
+                    response = jsonify({'message': 'Mot de passe invalide'})
+                    response.status_code = 400
         else:
             # Account doesnt exist or username/password incorrect
             msg = 'Incorrect username/password!'
@@ -75,7 +88,7 @@ def register():
             # Create variables for easy access
             firstname = data['firstname']
             lastname = data['lastname']
-            password = data['password']
+            password = generate_password_hash(data['password'])
             email = data['email']
 
             # Check if account exists using MySQL
