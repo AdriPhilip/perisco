@@ -2,6 +2,7 @@ from flask import Flask, request, session, redirect, url_for, jsonify
 from flaskext.mysql import MySQL  # pip install flask-mysql
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 import pymysql
 import re
 
@@ -16,7 +17,7 @@ mysql = MySQL()
 
 # MySQL configurations
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'The11legende'
+app.config['MYSQL_DATABASE_PASSWORD'] = ''
 app.config['MYSQL_DATABASE_DB'] = 'perisco'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 app.config['MYSQL_DATABASE_PORT'] = 3306
@@ -261,7 +262,7 @@ def findChildById(child_id):
         msg = 'no child registred'
         return jsonify(msg)
 
-# http://localhost:5000/child - this will be the registration page
+
 @app.route('/del_child/<child_id>', methods=['DELETE'])
 def deleteChildById(child_id):
     # connect
@@ -275,6 +276,70 @@ def deleteChildById(child_id):
         return jsonify("informations deleted")
     else:
         msg = 'no child registred'
+        return jsonify(msg)
+
+
+@app.route('/add_order', methods=['POST'])
+def saveOrders():
+    # connect
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    data = request.get_json()
+    # Output message if something goes wrong...
+    msg = ''
+    # Check if "lastname", "password" and "email" POST requests exist (user submitted form)
+    if request.method == 'POST':
+        if 'orders' in data and 'child_id' in data:
+            # Create variables for easy access
+            _orders = data['orders']
+            _child_id = data['child_id']
+
+            # Delete orders actually saved
+            sql = 'DELETE FROM orders WHERE children_child_id = %s'
+            cursor.execute(sql, data['child_id'])
+
+            # orders_id to return
+            orders_id = []
+
+            for _order in _orders:
+                # check datetimes
+                try:
+                    _datetime = datetime.datetime.strptime(_order, "%d/%m/%Y")
+                except ValueError:
+                    return 'Date format error'
+                # Account doesnt exists and the form data is valid, now insert new account into accounts table
+                sql = 'INSERT INTO orders VALUES (NULL, %s, %s)'
+                values = (_datetime, _child_id)
+                cursor.execute(sql, values)
+                order_id = cursor.lastrowid
+                orders_id.append(order_id)
+                conn.commit()
+            msg = {
+                "message": "The order has been successfully registred",
+                "orders_id": orders_id
+            }
+
+        else:
+            msg = 'Request error'
+    elif request.method == 'GET':
+        msg = "Request error"
+    # Show registration form with message (if any)
+    return jsonify(msg)
+
+
+@app.route('/orders/<child_id>')
+def getOrdersByChildId(child_id):
+    # connect
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    if child_id:
+        # Check if account exists using MySQL
+        sql = f"SELECT * FROM orders WHERE children_child_id = %s"
+        cursor.execute(sql, child_id)
+        orders = cursor.fetchall()
+        return jsonify(orders)
+    else:
+        msg = 'query error'
         return jsonify(msg)
 
 
